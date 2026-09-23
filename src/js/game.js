@@ -110,9 +110,29 @@ function movePacman( game ) {
   wrapTunnel( p, width );
 }
 
+// Objetivo (celda) de un fantasma segun su personalidad.
+// Devuelve { x, y }; puede caer sobre pared o fuera del laberinto, solo se usa
+// para comparar distancias.
+function ghostTarget( game, g ) {
+  const p = game.pacman;
+  const px = Math.round( p.x );
+  const py = Math.round( p.y );
+  const pd = DIRS[ p.dir ] || { x: 0, y: 0 };
+
+  if ( g.kind === 'hunter' ) {
+    return { x: px, y: py };
+  }
+  if ( g.kind === 'ambusher' ) {
+    // Apunta 4 celdas delante de Pac-Man.
+    return { x: px + pd.x * 4, y: py + pd.y * 4 };
+  }
+  // Kinds pendientes (flanker, coward): provisionalmente aleatorio.
+  return null;
+}
+
 function decideGhost( game, g ) {
   const grid = game.grid;
-  const p = game.pacman;
+  const target = ghostTarget( game, g );
 
   const options = Object.keys( DIRS ).filter(
     ( dir ) => dir !== OPPOSITE[ g.dir ] && canMove( grid, g.x, g.y, dir, 'ghost' )
@@ -120,16 +140,14 @@ function decideGhost( game, g ) {
   // Sin salida (callejon): permitir el giro de 180.
   const choices = options.length ? options : [ '' + OPPOSITE[ g.dir ] ];
 
-  if ( g.kind === 'hunter' ) {
-    const px = Math.round( p.x );
-    const py = Math.round( p.y );
+  if ( target ) {
     let best = choices[ 0 ];
     let bestDist = Infinity;
     for ( const dir of choices ) {
       const d = DIRS[ dir ];
       const nx = g.x + d.x;
       const ny = g.y + d.y;
-      const dist = Math.abs( nx - px ) + Math.abs( ny - py );
+      const dist = Math.abs( nx - target.x ) + Math.abs( ny - target.y );
       if ( dist < bestDist ) {
         bestDist = dist;
         best = dir;
