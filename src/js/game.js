@@ -134,8 +134,14 @@ function ghostTarget( game, g ) {
     const vy = py + pd.y * 2;
     return { x: vx * 2 - hunter.x, y: vy * 2 - hunter.y };
   }
-  // Kinds pendientes (coward): provisionalmente aleatorio.
-  return null;
+  if ( g.kind === 'coward' ) {
+    // Cobarde: si esta a menos de 8 celdas (Manhattan) de Pac-Man, huye a su
+    // esquina inferior-izquierda; si no, lo persigue.
+    const dist = Math.abs( g.x - px ) + Math.abs( g.y - py );
+    if ( dist < 8 ) return { x: 1, y: 29 };
+    return { x: px, y: py };
+  }
+  return { x: px, y: py };
 }
 
 function decideGhost( game, g ) {
@@ -162,8 +168,6 @@ function decideGhost( game, g ) {
       }
     }
     g.dir = best;
-  } else {
-    g.dir = choices[ Math.floor( Math.random() * choices.length ) ];
   }
 }
 
