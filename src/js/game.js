@@ -126,7 +126,15 @@ function ghostTarget( game, g ) {
     // Apunta 4 celdas delante de Pac-Man.
     return { x: px + pd.x * 4, y: py + pd.y * 4 };
   }
-  // Kinds pendientes (flanker, coward): provisionalmente aleatorio.
+  if ( g.kind === 'flanker' ) {
+    // Efecto pinza: V = celda de Pac-Man + 2·dir; objetivo = 2·V − celda hunter.
+    const hunter = game.ghosts.find( ( gh ) => gh.kind === 'hunter' );
+    if ( !hunter ) return { x: px, y: py };
+    const vx = px + pd.x * 2;
+    const vy = py + pd.y * 2;
+    return { x: vx * 2 - hunter.x, y: vy * 2 - hunter.y };
+  }
+  // Kinds pendientes (coward): provisionalmente aleatorio.
   return null;
 }
 
