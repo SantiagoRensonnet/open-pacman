@@ -38,6 +38,7 @@ const FRIGHTENED_FLASH_FRAMES = 120; // ultimos 2 s: parpadeo a blanco
 const FRIGHTENED_SPEED = 0.05;       // mitad de GHOST_SPEED
 const EYES_SPEED = 0.2;
 const GHOST_CHAIN_SCORES = [ 200, 400, 800, 1600 ];
+const GHOST_DOOR = { x: 13, y: 12 }; // celda de la puerta; objetivo de los ojos
 ```
 
 La partida (`createGame()`) gana dos campos:
@@ -69,7 +70,7 @@ Convenciones:
 
 1. `src/js/maze.js`: añadir `'o'` → 4 en `parseTile` y cambiar las 4 esquinas de `.` a `o`. `src/js/game.js`: en `createGame()` contar tiles 2 y 4 como comestibles; en `movePacman` comer tile 4 (+50, `dotsRemaining--`). `src/js/render.js`: dibujar tile 4 como dot grande (radio ~5) parpadeante. Prueba manual: se ven los 4 pellets parpadeando, comerlos suma 50 y la victoria los exige.
 2. `src/js/game.js`: campos `frightened`/`ghostChain` en `createGame()`; activación al comer pellet; decremento en `update()`; en `decideGhost()`, si frightened y modo normal, elegir dirección al azar entre las opciones válidas; velocidad efectiva en `moveGhost`. `src/js/render.js`: fantasma asustado en azul oscuro con cara clara, alternando a blanco cuando `frightened <= FRIGHTENED_FLASH_FRAMES`. Prueba manual: al comer un pellet los fantasmas se vuelven azules, lentos y erráticos ~7 s y parpadean los últimos ~2 s; la colisión sigue matando a Pac-Man (aún no son comestibles).
-3. `src/js/game.js`: en la colisión, si frightened y modo normal → comer fantasma (sumar `GHOST_CHAIN_SCORES[ghostChain]` con tope en el último, `ghostChain++`, `mode = 'eyes'`); los ojos no colisionan con Pac-Man; en `ghostTarget`/`canMove`, los ojos apuntan a su celda de `GHOST_STARTS` y la puerta (tile 3) no es muro para ellos aunque estén fuera; al entrar en la casa (`isInGhostHouse`) reviven con `mode = 'normal'` y `exitDelay = 0`. `src/js/render.js`: dibujar ojos sin cuerpo. Prueba manual: comer un fantasma suma la cadena, sus ojos vuelven rápido, entran por la puerta y el fantasma revivido sale ya en modo normal.
+3. `src/js/game.js`: en la colisión, si frightened y modo normal → comer fantasma (sumar `GHOST_CHAIN_SCORES[ghostChain]` con tope en el último, `ghostChain++`, `mode = 'eyes'`); los ojos no colisionan con Pac-Man; en `ghostTarget`/`canMove`, los ojos apuntan a la celda de la puerta `GHOST_DOOR` (13,12) y la puerta (tile 3) no es muro para ellos aunque estén fuera; al entrar en la casa (`isInGhostHouse`) reviven con `mode = 'normal'` y `exitDelay = 0`. `src/js/render.js`: dibujar ojos sin cuerpo. Prueba manual: comer un fantasma suma la cadena, sus ojos vuelven rápido, entran por la puerta y el fantasma revivido sale ya en modo normal.
 4. `src/js/game.js`: `resetPositions()` pone `frightened = 0`, `ghostChain = 0` y `mode = 'normal'` en los 4 fantasmas. Prueba manual: perder una vida durante frightened devuelve todo a la normalidad y el escalonado de SPEC 02 se repite.
 
 ## Criterios de aceptación
@@ -97,7 +98,8 @@ Convenciones:
 - **Sí:** frightened global en la partida (`game.frightened`), no por fantasma. Es un temporizador único en el arcade; los ojos son la única excepción por fantasma (`mode`).
 - **Sí:** movimiento aleatorio en intersecciones durante frightened (la rama que SPEC 01 eliminó, reintroducida solo para este modo). Fiel al arcade; `Math.random` sin semilla.
 - **Sí:** cadena 200/400/800/1600 que se reinicia con cada pellet. Arcade estándar.
-- **Sí:** ojos que vuelven a la casa a 0.2 con objetivo su celda de inicio y reviven al entrar. Reutiliza la navegación voraz existente; exige una excepción a la puerta unidireccional de SPEC 02 (los ojos sí la atraviesan desde fuera).
+- **Sí:** ojos que vuelven a la casa a 0.2 con objetivo `GHOST_DOOR` (13,12) y reviven al entrar. Reutiliza la navegación voraz existente; exige una excepción a la puerta unidireccional de SPEC 02 (los ojos sí la atraviesan desde fuera).
+- **Sí:** objetivo de los ojos en la celda de la puerta, no en su celda de `GHOST_STARTS`. Con la navegación voraz y el desempate actual, apuntar a la celda de inicio hace que los ojos oscilen sobre la fila 11 y den vueltas por el túnel sin entrar; apuntar a la puerta los revive al instante y cumple el criterio "rápidamente". Decisión tomada durante la implementación (paso 3).
 - **Sí:** fantasma revivido vuelve en modo normal aunque quede tiempo de frightened. Comportamiento del arcade: el peligro clásico tras comer un fantasma.
 - **No:** teletransportar el fantasma comido a la casa. Más simple, pero pierde la lectura visual de los ojos volviendo.
 - **Sí:** duración fija de 420 frames con parpadeo los últimos 120. No hay niveles, así que no hay decrecimiento.

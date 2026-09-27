@@ -115,6 +115,25 @@ function drawGhost( ctx, g, color, frame, frightened ) {
   const left = cx - r;
   const right = cx + r;
 
+  const dir = DIRS[ g.dir ] || { x: 0, y: 0 };
+  const ex = dir.x * 1.6;
+  const ey = dir.y * 1.6;
+
+  // Ojos solos (fantasma comido): sin cuerpo, mirando hacia la casa.
+  if ( g.mode === 'eyes' ) {
+    for ( const off of [ -4, 4 ] ) {
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc( cx + off, cy - 1, 3.5, 0, Math.PI * 2 );
+      ctx.fill();
+      ctx.fillStyle = '#0000bb';
+      ctx.beginPath();
+      ctx.arc( cx + off + ex, cy - 1 + ey, 1.8, 0, Math.PI * 2 );
+      ctx.fill();
+    }
+    return;
+  }
+
   // Frightened: cuerpo azul oscuro con cara clara; parpadeo a blanco en los
   // ultimos frames. Los ojos (mode 'eyes') no usan este esquema.
   let body = color;
@@ -140,9 +159,6 @@ function drawGhost( ctx, g, color, frame, frightened ) {
   ctx.fill();
 
   // ojos mirando segun direccion
-  const dir = DIRS[ g.dir ] || { x: 0, y: 0 };
-  const ex = dir.x * 1.6;
-  const ey = dir.y * 1.6;
   for ( const off of [ -3.5, 3.5 ] ) {
     ctx.fillStyle = face;
     ctx.beginPath();
