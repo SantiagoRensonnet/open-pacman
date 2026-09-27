@@ -13,6 +13,15 @@ const OPPOSITE = { left: 'right', right: 'left', up: 'down', down: 'up' };
 const PACMAN_SPEED = 0.125; // 1/8 celda/frame -> alinea cada 8 frames
 const GHOST_SPEED = 0.1;    // 1/10 celda/frame
 
+// Bounding box de la casa: cols 11-16, filas 12-15 (la fila 12 incluye la puerta).
+const GHOST_HOUSE = { x1: 11, y1: 12, x2: 16, y2: 15 };
+
+// Celda justo encima de la puerta; objetivo de cualquier fantasma dentro.
+const GHOST_EXIT = { x: 13, y: 11 };
+
+// Frames que espera cada fantasma antes de salir (indice alineado con GHOST_STARTS).
+const GHOST_EXIT_DELAYS = [ 0, 60, 120, 180 ];
+
 // Crea una partida nueva. Copia MAZE (pristino) a game.grid para poder comer
 // dots sin destruir el original, y reiniciar.
 function createGame() {
@@ -36,12 +45,13 @@ function createGame() {
       nextDir: null,
       speed: PACMAN_SPEED,
     },
-    ghosts: GHOST_STARTS.map( ( g ) => ( {
+    ghosts: GHOST_STARTS.map( ( g, i ) => ( {
       x: g.x,
       y: g.y,
       dir: 'up',
       speed: GHOST_SPEED,
       kind: g.kind,
+      exitDelay: GHOST_EXIT_DELAYS[ i ],
     } ) ),
   };
 }
@@ -52,13 +62,14 @@ function aligned( v ) {
 
 // Una celda es muro para el actor dado?
 //   pacman: bloqueado por pared (1) y puerta (3)
-//   ghost:  bloqueado solo por pared (1)
-function isWall( grid, x, y, actor ) {
+//   ghost dentro de la casa: bloqueado solo por pared (1)
+//   ghost fuera de la casa: bloqueado por pared (1) y puerta (3)
+function isWall( grid, x, y, actor, ghostInside ) {
   if ( y < 0 || y >= grid.length ) return true;
   if ( x < 0 || x >= grid[ 0 ].length ) return true;
   const v = grid[ y ][ x ];
   if ( v === 1 ) return true;
-  if ( v === 3 && actor === 'pacman' ) return true;
+  if ( v === 3 && ( actor === 'pacman' || !ghostInside ) ) return true;
   return false;
 }
 
@@ -70,7 +81,9 @@ function canMove( grid, x, y, dir, actor ) {
   const ty = y + d.y;
   // Tunel: salir por un borde en la fila del tunel siempre es valido.
   if ( ty === TUNNEL_ROW && ( tx < 0 || tx >= grid[ 0 ].length ) ) return true;
-  return !isWall( grid, tx, ty, actor );
+  // Puerta unidireccional: los fantasmas fuera de la casa la tratan como muro.
+  const ghostInside = actor !== 'pacman' && isInGhostHouse( Math.round( x ), Math.round( y ) );
+  return !isWall( grid, tx, ty, actor, ghostInside );
 }
 
 function wrapTunnel( a, width ) {
@@ -110,10 +123,21 @@ function movePacman( game ) {
   wrapTunnel( p, width );
 }
 
+// True si la celda (x,y) esta dentro de la casa de los fantasmas.
+function isInGhostHouse( x, y ) {
+  return x >= GHOST_HOUSE.x1 && x <= GHOST_HOUSE.x2 &&
+         y >= GHOST_HOUSE.y1 && y <= GHOST_HOUSE.y2;
+}
+
 // Objetivo (celda) de un fantasma segun su personalidad.
 // Devuelve { x, y }; puede caer sobre pared o fuera del laberinto, solo se usa
 // para comparar distancias.
 function ghostTarget( game, g ) {
+  // Dentro de la casa: salir por la puerta, ignorando la personalidad.
+  if ( isInGhostHouse( Math.round( g.x ), Math.round( g.y ) ) ) {
+    return GHOST_EXIT;
+  }
+
   const p = game.pacman;
   const px = Math.round( p.x );
   const py = Math.round( p.y );
@@ -172,6 +196,7 @@ function decideGhost( game, g ) {
 }
 
 function moveGhost( game, g ) {
+  if ( g.exitDelay > 0 ) return;
   const grid = game.grid;
   const width = grid[ 0 ].length;
 
@@ -198,6 +223,7 @@ function resetPositions( game ) {
     g.x = GHOST_STARTS[ i ].x;
     g.y = GHOST_STARTS[ i ].y;
     g.dir = 'up';
+    g.exitDelay = GHOST_EXIT_DELAYS[ i ];
   } );
 }
 
@@ -207,7 +233,10 @@ function collides( a, b ) {
 
 function update( game ) {
   movePacman( game );
-  game.ghosts.forEach( ( g ) => moveGhost( game, g ) );
+  game.ghosts.forEach( ( g ) => {
+    if ( g.exitDelay > 0 ) g.exitDelay--;
+    moveGhost( game, g );
+  } );
 
   for ( const g of game.ghosts ) {
     if ( collides( game.pacman, g ) ) {
