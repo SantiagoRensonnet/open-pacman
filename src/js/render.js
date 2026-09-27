@@ -6,6 +6,10 @@ const WALL_COLOR = '#2121ff';
 const DOOR_COLOR = '#ffb8ff';
 const DOT_COLOR = '#ffb897';
 
+// Umbral de parpadeo del modo frightened (espejo de FRIGHTENED_FLASH_FRAMES de
+// game.js; no se expone en window por contrato, asi que se duplica aqui).
+const FLASH_THRESHOLD = 120;
+
 function cellCenter( x, y ) {
   return { cx: x * TILE + TILE / 2, cy: y * TILE + TILE / 2 };
 }
@@ -103,7 +107,7 @@ function drawPacman( ctx, p, frame ) {
   ctx.fill();
 }
 
-function drawGhost( ctx, g, color ) {
+function drawGhost( ctx, g, color, frame, frightened ) {
   const { cx, cy } = cellCenter( g.x, g.y );
   const r = TILE / 2 - 1;
   const top = cy - r;
@@ -111,7 +115,19 @@ function drawGhost( ctx, g, color ) {
   const left = cx - r;
   const right = cx + r;
 
-  ctx.fillStyle = color;
+  // Frightened: cuerpo azul oscuro con cara clara; parpadeo a blanco en los
+  // ultimos frames. Los ojos (mode 'eyes') no usan este esquema.
+  let body = color;
+  let face = '#ffffff';
+  let pupil = '#0000bb';
+  if ( frightened > 0 && g.mode === 'normal' ) {
+    const flashing = frightened <= FLASH_THRESHOLD && Math.floor( frame / 8 ) % 2 === 0;
+    body = flashing ? '#ffffff' : '#2121de';
+    face = flashing ? '#ff0000' : '#ffb8de';
+    pupil = '#0000bb';
+  }
+
+  ctx.fillStyle = body;
   ctx.beginPath();
   ctx.arc( cx, cy - 1, r, Math.PI, 0, false ); // cabeza
   ctx.lineTo( right, bottom );
@@ -128,11 +144,11 @@ function drawGhost( ctx, g, color ) {
   const ex = dir.x * 1.6;
   const ey = dir.y * 1.6;
   for ( const off of [ -3.5, 3.5 ] ) {
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = face;
     ctx.beginPath();
     ctx.arc( cx + off, cy - 1, 3, 0, Math.PI * 2 );
     ctx.fill();
-    ctx.fillStyle = '#0000bb';
+    ctx.fillStyle = pupil;
     ctx.beginPath();
     ctx.arc( cx + off + ex, cy - 1 + ey, 1.5, 0, Math.PI * 2 );
     ctx.fill();
@@ -163,7 +179,7 @@ function draw( ctx, game, frame ) {
   drawDoor( ctx, grid );
   drawDots( ctx, grid, frame );
   drawPacman( ctx, game.pacman, frame );
-  game.ghosts.forEach( ( g, i ) => drawGhost( ctx, g, GHOST_COLORS[ i ] || '#ff0000' ) );
+  game.ghosts.forEach( ( g, i ) => drawGhost( ctx, g, GHOST_COLORS[ i ] || '#ff0000', frame, game.frightened ) );
   drawHUD( ctx, game, W );
 }
 

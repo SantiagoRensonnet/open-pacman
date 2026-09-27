@@ -22,6 +22,13 @@ const GHOST_EXIT = { x: 13, y: 11 };
 // Frames que espera cada fantasma antes de salir (indice alineado con GHOST_STARTS).
 const GHOST_EXIT_DELAYS = [ 0, 60, 120, 180 ];
 
+// Modo frightened.
+const FRIGHTENED_FRAMES = 420;       // 7 s a 60 fps
+const FRIGHTENED_FLASH_FRAMES = 120; // ultimos 2 s: parpadeo a blanco
+const FRIGHTENED_SPEED = 0.05;       // mitad de GHOST_SPEED
+const EYES_SPEED = 0.2;
+const GHOST_CHAIN_SCORES = [ 200, 400, 800, 1600 ];
+
 // Crea una partida nueva. Copia MAZE (pristino) a game.grid para poder comer
 // dots sin destruir el original, y reiniciar.
 function createGame() {
@@ -37,6 +44,8 @@ function createGame() {
     score: 0,
     lives: 3,
     dotsRemaining: dots,
+    frightened: 0,  // frames restantes de modo frightened (0 = inactivo)
+    ghostChain: 0,  // fantasmas comidos en el frightened actual
     grid,
     pacman: {
       x: PACMAN_START.x,
@@ -52,6 +61,7 @@ function createGame() {
       speed: GHOST_SPEED,
       kind: g.kind,
       exitDelay: GHOST_EXIT_DELAYS[ i ],
+      mode: 'normal',
     } ) ),
   };
 }
@@ -113,6 +123,11 @@ function movePacman( game ) {
       grid[ p.y ][ p.x ] = 0;
       game.score += v === 4 ? 50 : 10;
       game.dotsRemaining--;
+      // El power pellet activa (o reinicia) el modo frightened.
+      if ( v === 4 ) {
+        game.frightened = FRIGHTENED_FRAMES;
+        game.ghostChain = 0;
+      }
     }
     // Si no puede seguir, se detiene en la celda.
     if ( !canMove( grid, p.x, p.y, p.dir, 'pacman' ) ) return;
@@ -171,13 +186,20 @@ function ghostTarget( game, g ) {
 
 function decideGhost( game, g ) {
   const grid = game.grid;
-  const target = ghostTarget( game, g );
 
   const options = Object.keys( DIRS ).filter(
     ( dir ) => dir !== OPPOSITE[ g.dir ] && canMove( grid, g.x, g.y, dir, 'ghost' )
   );
   // Sin salida (callejon): permitir el giro de 180.
   const choices = options.length ? options : [ '' + OPPOSITE[ g.dir ] ];
+
+  // Modo frightened: direccion aleatoria en cada interseccion.
+  if ( game.frightened > 0 && g.mode === 'normal' ) {
+    g.dir = choices[ Math.floor( Math.random() * choices.length ) ];
+    return;
+  }
+
+  const target = ghostTarget( game, g );
 
   if ( target ) {
     let best = choices[ 0 ];
@@ -209,8 +231,11 @@ function moveGhost( game, g ) {
   }
 
   const d = DIRS[ g.dir ];
-  g.x += d.x * g.speed;
-  g.y += d.y * g.speed;
+  // Velocidad efectiva segun el estado del fantasma.
+  const speed = g.mode === 'eyes' ? EYES_SPEED :
+                game.frightened > 0 && g.mode === 'normal' ? FRIGHTENED_SPEED : GHOST_SPEED;
+  g.x += d.x * speed;
+  g.y += d.y * speed;
   wrapTunnel( g, width );
 }
 
@@ -233,6 +258,7 @@ function collides( a, b ) {
 }
 
 function update( game ) {
+  if ( game.frightened > 0 ) game.frightened--;
   movePacman( game );
   game.ghosts.forEach( ( g ) => {
     if ( g.exitDelay > 0 ) g.exitDelay--;
