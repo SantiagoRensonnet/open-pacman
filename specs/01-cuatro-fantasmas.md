@@ -1,6 +1,6 @@
 # SPEC 01 — Cuatro fantasmas con personalidades clásicas
 
-> **Estado:** Approved
+> **Estado:** Implemented
 > **Depende de:** —
 > **Fecha:** 2026-09-23
 > **Objetivo:** Ampliar el juego de 2 a 4 fantasmas, cada uno con una personalidad clásica del arcade (cazador, emboscador, flanqueador, cobarde) y su color distintivo.
