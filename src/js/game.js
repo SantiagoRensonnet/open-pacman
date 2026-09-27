@@ -110,9 +110,43 @@ function movePacman( game ) {
   wrapTunnel( p, width );
 }
 
+// Objetivo (celda) de un fantasma segun su personalidad.
+// Devuelve { x, y }; puede caer sobre pared o fuera del laberinto, solo se usa
+// para comparar distancias.
+function ghostTarget( game, g ) {
+  const p = game.pacman;
+  const px = Math.round( p.x );
+  const py = Math.round( p.y );
+  const pd = DIRS[ p.dir ] || { x: 0, y: 0 };
+
+  if ( g.kind === 'hunter' ) {
+    return { x: px, y: py };
+  }
+  if ( g.kind === 'ambusher' ) {
+    // Apunta 4 celdas delante de Pac-Man.
+    return { x: px + pd.x * 4, y: py + pd.y * 4 };
+  }
+  if ( g.kind === 'flanker' ) {
+    // Efecto pinza: V = celda de Pac-Man + 2·dir; objetivo = 2·V − celda hunter.
+    const hunter = game.ghosts.find( ( gh ) => gh.kind === 'hunter' );
+    if ( !hunter ) return { x: px, y: py };
+    const vx = px + pd.x * 2;
+    const vy = py + pd.y * 2;
+    return { x: vx * 2 - hunter.x, y: vy * 2 - hunter.y };
+  }
+  if ( g.kind === 'coward' ) {
+    // Cobarde: si esta a menos de 8 celdas (Manhattan) de Pac-Man, huye a su
+    // esquina inferior-izquierda; si no, lo persigue.
+    const dist = Math.abs( g.x - px ) + Math.abs( g.y - py );
+    if ( dist < 8 ) return { x: 1, y: 29 };
+    return { x: px, y: py };
+  }
+  return { x: px, y: py };
+}
+
 function decideGhost( game, g ) {
   const grid = game.grid;
-  const p = game.pacman;
+  const target = ghostTarget( game, g );
 
   const options = Object.keys( DIRS ).filter(
     ( dir ) => dir !== OPPOSITE[ g.dir ] && canMove( grid, g.x, g.y, dir, 'ghost' )
@@ -120,24 +154,20 @@ function decideGhost( game, g ) {
   // Sin salida (callejon): permitir el giro de 180.
   const choices = options.length ? options : [ '' + OPPOSITE[ g.dir ] ];
 
-  if ( g.kind === 'hunter' ) {
-    const px = Math.round( p.x );
-    const py = Math.round( p.y );
+  if ( target ) {
     let best = choices[ 0 ];
     let bestDist = Infinity;
     for ( const dir of choices ) {
       const d = DIRS[ dir ];
       const nx = g.x + d.x;
       const ny = g.y + d.y;
-      const dist = Math.abs( nx - px ) + Math.abs( ny - py );
+      const dist = Math.abs( nx - target.x ) + Math.abs( ny - target.y );
       if ( dist < bestDist ) {
         bestDist = dist;
         best = dir;
       }
     }
     g.dir = best;
-  } else {
-    g.dir = choices[ Math.floor( Math.random() * choices.length ) ];
   }
 }
 
