@@ -262,11 +262,15 @@ function resetPositions( game ) {
   p.y = PACMAN_START.y;
   p.dir = 'left';
   p.nextDir = null;
+  // Al perder una vida el modo frightened termina.
+  game.frightened = 0;
+  game.ghostChain = 0;
   game.ghosts.forEach( ( g, i ) => {
     g.x = GHOST_STARTS[ i ].x;
     g.y = GHOST_STARTS[ i ].y;
     g.dir = 'up';
     g.exitDelay = GHOST_EXIT_DELAYS[ i ];
+    g.mode = 'normal';
   } );
 }
 

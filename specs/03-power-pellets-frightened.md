@@ -1,6 +1,6 @@
 # SPEC 03 — Power pellets y modo frightened
 
-> **Estado:** Approved
+> **Estado:** Implemented
 > **Depende de:** SPEC 01, SPEC 02
 > **Fecha:** 2026-09-27
 > **Objetivo:** Añadir los 4 power pellets del arcade en las esquinas del laberinto, que al comerlos activan el modo frightened: los fantasmas se vuelven azules, se mueven al azar y pueden ser comidos.
