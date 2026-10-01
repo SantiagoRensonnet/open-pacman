@@ -237,16 +237,18 @@ function moveGhost( game, g ) {
   if ( aligned( g.x ) && aligned( g.y ) ) {
     g.x = Math.round( g.x );
     g.y = Math.round( g.y );
+    // Enganchar la velocidad al estado solo en celda alineada: cambiar de
+    // velocidad a mitad de celda deja al fantasma en offsets que la nueva
+    // velocidad nunca realinea (se perdia atravesando paredes).
+    g.speed = g.mode === 'eyes' ? EYES_SPEED :
+              game.frightened > 0 && g.mode === 'normal' ? FRIGHTENED_SPEED : GHOST_SPEED;
     decideGhost( game, g );
     if ( !canMove( grid, g.x, g.y, g.dir, actor ) ) return;
   }
 
   const d = DIRS[ g.dir ];
-  // Velocidad efectiva segun el estado del fantasma.
-  const speed = g.mode === 'eyes' ? EYES_SPEED :
-                game.frightened > 0 && g.mode === 'normal' ? FRIGHTENED_SPEED : GHOST_SPEED;
-  g.x += d.x * speed;
-  g.y += d.y * speed;
+  g.x += d.x * g.speed;
+  g.y += d.y * g.speed;
   wrapTunnel( g, width );
 
   // Ojos que entran en la casa: reviven y salen al instante.
@@ -271,6 +273,7 @@ function resetPositions( game ) {
     g.dir = 'up';
     g.exitDelay = GHOST_EXIT_DELAYS[ i ];
     g.mode = 'normal';
+    g.speed = GHOST_SPEED;
   } );
 }
 
