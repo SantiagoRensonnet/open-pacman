@@ -1,6 +1,6 @@
 # SPEC 04 — Fix: realineación de fantasmas tras cambios de velocidad
 
-> **Estado:** Approved
+> **Estado:** Implemented
 > **Depende de:** SPEC 01, SPEC 02, SPEC 03
 > **Fecha:** 2026-10-01
 > **Objetivo:** Corregir que los fantasmas desaparezcan para siempre tras ser comidos o al terminar el modo frightened, enganchando los cambios de velocidad a la retícula de alineación.

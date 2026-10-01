@@ -273,6 +273,7 @@ function resetPositions( game ) {
     g.dir = 'up';
     g.exitDelay = GHOST_EXIT_DELAYS[ i ];
     g.mode = 'normal';
+    g.speed = GHOST_SPEED;
   } );
 }
 
